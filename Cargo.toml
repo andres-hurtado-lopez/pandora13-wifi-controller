@@ -1,0 +1,28 @@
+[package]
+name = "pandora13-wifi-controller"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+embassy-executor = { version = "0.4.0", path = "../embassy/embassy-executor", features = ["arch-cortex-m", "executor-thread", "executor-interrupt", "defmt"] }
+embassy-time = { version = "0.2", path = "../embassy/embassy-time", features = ["defmt", "defmt-timestamp-uptime"] }
+embassy-rp = { version = "0.1.0", path = "../embassy/embassy-rp", features = ["defmt", "unstable-pac", "time-driver", "critical-section-impl"] }
+embassy-net = { version = "0.2.0", path = "../embassy/embassy-net", features = ["defmt", "tcp", "udp", "dhcpv4", "medium-ethernet"] }
+cyw43 = { path = "../embassy/cyw43", features = ["defmt", "firmware-logs"] }
+cyw43-pio = { path = "../embassy/cyw43-pio", features = ["defmt", "overclock"] }
+
+defmt = "0.3" 
+defmt-rtt = "0.4" 
+
+cortex-m-rt = "0.7.0" 
+panic-probe = { version = "0.3", features = ["print-defmt"] } 
+
+embedded-io-async = { version = "0.6.1", features = ["defmt-03"] }
+static_cell = "2"
+portable-atomic = { version = "1.5", features = ["critical-section"] }
+heapless = "0.8"
+
+[profile.release]
+debug = true
