@@ -1,6 +1,3 @@
-//! This example uses the RP Pico W board Wifi chip (cyw43).
-//! Creates an Access point Wifi network and creates a TCP endpoint on port 1234.
-
 #![no_std]
 #![no_main]
 #![allow(async_fn_in_trait)]
@@ -242,7 +239,6 @@ async fn socket_handler(
     //control.start_ap_open("cyw43", 5).await;
     control.start_ap_wpa2("pandora13-wifi-controller", "Nhy6bgt5vfr4.", 5).await;
     
-    // And now we can use it!
 
     let mut rx_buffer = [0; 4096];
     let mut tx_buffer = [0; 4096];
@@ -254,16 +250,16 @@ async fn socket_handler(
 
     loop {
         let mut socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
-        socket.set_timeout(Some(Duration::from_secs(10)));
+	socket.set_timeout(Some(Duration::from_secs(300)));
 
         control.gpio_set(0, false).await;
-        info!("Listening on TCP:1234...");
+        info!("Listening on 169.254.1.1:1234...");
         if let Err(e) = socket.accept(1234).await {
-            warn!("accept error: {:?}", e);
+            warn!("error tryinto to accept client: {:?}", e);
             continue;
         }
 
-        info!("Received connection from {:?}", socket.remote_endpoint());
+        info!("Received connection from client {:?}", socket.remote_endpoint());
         control.gpio_set(0, true).await;
 
 	let mut location : VirtualKeyaboardMatrixItem = VirtualKeyaboardMatrixItem::N1;
@@ -273,7 +269,7 @@ async fn socket_handler(
 		match socket.write_all(b"OK\n").await {
 		    Ok(()) => {}
 		    Err(e) => {
-			warn!("write response error: {:?}", e);
+			warn!("write response to client error: {:?}", e);
 			break;
 		    }
 		};
