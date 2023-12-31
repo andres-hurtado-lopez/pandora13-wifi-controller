@@ -141,22 +141,22 @@ async fn main(spawner: Spawner) {
     }
 
 
-    if let Err(why) = spawner.spawn(pin_handler(
-	a,
-	b,
-	c,
-	d,
-	e,
-	f,
-	up,
-	down,
-	left,
-	right,
-	start,
+    // if let Err(why) = spawner.spawn(pin_handler(
+    // 	a,
+    // 	b,
+    // 	c,
+    // 	d,
+    // 	e,
+    // 	f,
+    // 	up,
+    // 	down,
+    // 	left,
+    // 	right,
+    // 	start,
 	    
-    )){
-	defmt::panic!("Failed starting web server task: {}",why);
-    }
+    // )){
+    // 	defmt::panic!("Failed starting web server task: {}",why);
+    // }
 
     
 }
@@ -188,6 +188,7 @@ async fn pin_handler(
     
     loop{
 
+	info!("waiting incomming ControllMessage..");
 	let message = receiver.receive().await;
 
 	match message {
@@ -244,13 +245,16 @@ async fn socket_handler(
     let mut tx_buffer = [0; 4096];
     let mut buf = [0; 4096];
     let controller_sender = CONTROLLER_CHANNEL.sender();
-    const KEYBOARD_MODE : &u8 = &0;
-    const DIRECT_MODE : &u8 = &1;
+    //const KEYBOARD_MODE : &u8 = &0;
+    //const DIRECT_MODE : &u8 = &1;
+    const KEYBOARD_MODE : &u8 = &b'0';
+    const DIRECT_MODE : &u8 = &b'1';
+
 
 
     loop {
         let mut socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
-	socket.set_timeout(Some(Duration::from_secs(300)));
+	socket.set_timeout(Some(Duration::from_secs(10)));
 
         control.gpio_set(0, false).await;
         info!("Listening on 169.254.1.1:1234...");
@@ -282,17 +286,21 @@ async fn socket_handler(
 	    ($message : expr) => {
 		
 		controller_sender.send($message).await;
-		//yield_now().await;
+		yield_now().await;
 		
 	    }
 	}
 
         'socket_loop : loop {
+	    info!("reading socket...");
             match socket.read(&mut buf).await {
                 Ok(0) => {
+		    info!("No incomming bytes...");
 		    yield_now().await;
                 }
                 Ok(n) => {
+
+		    info!("Incomming bytes {}",n);
 
 		    if let Some(KEYBOARD_MODE) = buf.get(0) {
 		    
