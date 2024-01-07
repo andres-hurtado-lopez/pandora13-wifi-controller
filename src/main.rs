@@ -110,11 +110,7 @@ async fn main(spawner: Spawner) {
         .await;
 
     // Use a link-local address for communication without DHCP server
-    let config = Config::ipv4_static(embassy_net::StaticConfigV4 {
-        address: embassy_net::Ipv4Cidr::new(embassy_net::Ipv4Address::new(169, 254, 1, 1), 16),
-        dns_servers: heapless::Vec::new(),
-        gateway: None,
-    });
+    let config = Config::dhcpv4(Default::default());
 
     // Generate random seed
     let seed = 0x0123_4567_89ab_cdef; // chosen by fair dice roll. guarenteed to be random.
@@ -141,22 +137,22 @@ async fn main(spawner: Spawner) {
     }
 
 
-    // if let Err(why) = spawner.spawn(pin_handler(
-    // 	a,
-    // 	b,
-    // 	c,
-    // 	d,
-    // 	e,
-    // 	f,
-    // 	up,
-    // 	down,
-    // 	left,
-    // 	right,
-    // 	start,
+    if let Err(why) = spawner.spawn(pin_handler(
+	a,
+	b,
+	c,
+	d,
+	e,
+	f,
+	up,
+	down,
+	left,
+	right,
+	start,
 	    
-    // )){
-    // 	defmt::panic!("Failed starting web server task: {}",why);
-    // }
+    )){
+	defmt::panic!("Failed starting web server task: {}",why);
+    }
 
     
 }
@@ -179,8 +175,9 @@ async fn pin_handler(
     macro_rules! push_and_release{
 	($pin: expr) =>{
 	    $pin.set_high();
-	    Timer::after(Duration::from_millis(200)).await;
+	    Timer::after(Duration::from_millis(50)).await;
 	    $pin.set_low();
+	    Timer::after(Duration::from_millis(50)).await;
 	}
     }
     
@@ -226,6 +223,8 @@ async fn pin_handler(
 		push_and_release!(start);
 	    },
 	}
+
+	yield_now().await;
 	
     }
 
@@ -237,16 +236,32 @@ async fn socket_handler(
     mut control: cyw43::Control<'static>,	
 ){
 
-    //control.start_ap_open("cyw43", 5).await;
-    control.start_ap_wpa2("pandora13-wifi-controller", "Nhy6bgt5vfr4.", 5).await;
+    const WIFI_NETWORK : &str = "COPOLAND-PLUS";
+    const WIFI_PASSWORD : &str = "Nhy6bgt5vfr4.";
+
+    loop {
+        //control.join_open(WIFI_NETWORK).await;
+        match control.join_wpa2(WIFI_NETWORK, WIFI_PASSWORD).await {
+            Ok(_) => break,
+            Err(err) => {
+                info!("failed to join WIFI with status={}", err.status);
+            }
+        }
+    }
+
+    // Wait for DHCP, not necessary when using static IP
+    info!("waiting for DHCP...");
+    while !stack.is_config_up() {
+        Timer::after_millis(100).await;
+    }
+    info!("DHCP is now up!");
+
     
 
     let mut rx_buffer = [0; 4096];
     let mut tx_buffer = [0; 4096];
     let mut buf = [0; 4096];
     let controller_sender = CONTROLLER_CHANNEL.sender();
-    //const KEYBOARD_MODE : &u8 = &0;
-    //const DIRECT_MODE : &u8 = &1;
     const KEYBOARD_MODE : &u8 = &b'0';
     const DIRECT_MODE : &u8 = &b'1';
 
@@ -257,7 +272,7 @@ async fn socket_handler(
 	socket.set_timeout(Some(Duration::from_secs(10)));
 
         control.gpio_set(0, false).await;
-        info!("Listening on 169.254.1.1:1234...");
+        info!("Listening on port TCP 1234...");
         if let Err(e) = socket.accept(1234).await {
             warn!("error tryinto to accept client: {:?}", e);
             continue;
@@ -271,14 +286,18 @@ async fn socket_handler(
 	macro_rules! answer_ok{
 	    () => {
 		match socket.write_all(b"OK\n").await {
-		    Ok(()) => {}
+		    Ok(()) => {
+			let _ = socket.flush();
+			yield_now().await;
+			let _ = socket.close();
+			yield_now().await;
+			break;
+		    }
 		    Err(e) => {
 			warn!("write response to client error: {:?}", e);
 			break;
 		    }
 		};
-
-		yield_now().await;
 	    }
 	}
 
@@ -308,7 +327,6 @@ async fn socket_handler(
 
 			    if let VirtualKeyaboardMatrixItem::EOL = item {
 				answer_ok!();
-				break;
 			    }
 			    
 			    if let Some((delta_x, delta_y)) = location.compute_move_delta(&item) {
@@ -345,15 +363,16 @@ async fn socket_handler(
 			    
 			}
 
-			buf.iter_mut().for_each(|x|{ *x = 0; }); 
 			
 		    } else if let Some(DIRECT_MODE) = buf.get(0) {
 
-			if let Some(message) = buf.get(1).and_then(|x| ControlMessages::from_byte(*x) ) {
-			    controller_sender.send(message).await;
-
-			    answer_ok!();
+			for potential_message in buf.iter().take(n).map(|x| ControlMessages::from_byte(*x) ) {
+			    if let Some(message) = potential_message{
+				controller_sender.send(message).await;
+			    }
 			}
+			
+			answer_ok!();
 		    }
 
 		    
