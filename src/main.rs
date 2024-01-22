@@ -15,19 +15,19 @@ use embassy_sync::{
 };
 use embassy_rp::peripherals::{
     DMA_CH0,
-    PIN_15,
-    PIN_16,
-    PIN_17,
-    PIN_18,
-    PIN_19,
-    PIN_20,
-    PIN_21,
-    PIN_22,
     PIN_23,
     PIN_25,
-    PIN_26,
-    PIN_27,
-    PIN_28,
+    PIN_6,
+    PIN_7,
+    PIN_4,
+    PIN_5,
+    PIN_2,
+    PIN_3,
+    PIN_0,
+    PIN_1,
+    PIN_10,
+    PIN_8,
+    PIN_9,
     PIO0
 };
 use embassy_rp::pio::{InterruptHandler, Pio};
@@ -79,19 +79,19 @@ async fn main(spawner: Spawner) {
     let pwr = Output::new(p.PIN_23, Level::Low);
     let cs = Output::new(p.PIN_25, Level::High);
 
-    let a = Output::new(p.PIN_15, Level::Low);
-    let b = Output::new(p.PIN_16, Level::Low);
-    let c = Output::new(p.PIN_17, Level::Low);
-    let d = Output::new(p.PIN_18, Level::Low);
-    let e = Output::new(p.PIN_19, Level::Low);
-    let f = Output::new(p.PIN_20, Level::Low);
+    let a = Output::new(p.PIN_7, Level::Low);
+    let b = Output::new(p.PIN_6, Level::Low);
+    let c = Output::new(p.PIN_5, Level::Low);
+    let d = Output::new(p.PIN_4, Level::Low);
+    let e = Output::new(p.PIN_3, Level::Low);
+    let f = Output::new(p.PIN_2, Level::Low);
 
-    let up = Output::new(p.PIN_21, Level::Low);
-    let down = Output::new(p.PIN_22, Level::Low);
-    let left = Output::new(p.PIN_26, Level::Low);
-    let right = Output::new(p.PIN_27, Level::Low);
+    let up = Output::new(p.PIN_1, Level::Low);
+    let down = Output::new(p.PIN_0, Level::Low);
+    let left = Output::new(p.PIN_10, Level::Low);
+    let right = Output::new(p.PIN_9, Level::Low);
 
-    let start = Output::new(p.PIN_28, Level::Low);
+    let start = Output::new(p.PIN_8, Level::Low);
     
     let mut pio = Pio::new(p.PIO0, Irqs);
     let spi = PioSpi::new(&mut pio.common, pio.sm0, pio.irq0, cs, p.PIN_24, p.PIN_29, p.DMA_CH0);
@@ -159,17 +159,17 @@ async fn main(spawner: Spawner) {
 
 #[embassy_executor::task]
 async fn pin_handler(
-    mut a: Output<'static, PIN_15>,
-    mut b: Output<'static, PIN_16>,
-    mut c: Output<'static, PIN_17>,
-    mut d: Output<'static, PIN_18>,
-    mut e: Output<'static, PIN_19>,
-    mut f: Output<'static, PIN_20>,
-    mut up: Output<'static, PIN_21>,
-    mut down: Output<'static, PIN_22>,
-    mut left: Output<'static, PIN_26>,
-    mut right: Output<'static, PIN_27>,
-    mut start: Output<'static, PIN_28>,
+    mut a: Output<'static, PIN_7>,
+    mut b: Output<'static, PIN_6>,
+    mut c: Output<'static, PIN_5>,
+    mut d: Output<'static, PIN_4>,
+    mut e: Output<'static, PIN_3>,
+    mut f: Output<'static, PIN_2>,
+    mut up: Output<'static, PIN_1>,
+    mut down: Output<'static, PIN_0>,
+    mut left: Output<'static, PIN_10>,
+    mut right: Output<'static, PIN_9>,
+    mut start: Output<'static, PIN_8>,
 ){
 
     macro_rules! push_and_release{
