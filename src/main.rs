@@ -236,6 +236,9 @@ async fn socket_handler(
     mut control: cyw43::Control<'static>,	
 ){
 
+    //const SSID: &str = "TP-LINK_E1E082";
+    //const PASSWORD: &str = "11180647";
+    
     const WIFI_NETWORK : &str = "COPOLAND-PLUS";
     const WIFI_PASSWORD : &str = "Nhy6bgt5vfr4.";
 
